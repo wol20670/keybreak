@@ -33,7 +33,7 @@ DATABASE_URL이 없어도 게임은 완전히 동작합니다. 이때 랭킹 API
    DATABASE_URL=postgresql://...
    ```
 
-4. Neon SQL Editor에서 [`db/schema.sql`](db/schema.sql) 실행
+4. 스키마 적용: `npm run db:migrate` (또는 Neon SQL Editor에서 [`db/schema.sql`](db/schema.sql) 실행)
 5. Vercel 프로젝트 환경변수에도 같은 값을 `DATABASE_URL` 로 등록 후 재배포
 
 `DATABASE_URL`은 **서버 전용**입니다. `NEXT_PUBLIC_` 접두사를 붙이지 마세요.
