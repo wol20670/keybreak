@@ -1,18 +1,34 @@
 "use client";
 
 import Image from "next/image";
-import { memo, useState } from "react";
+import { memo, useCallback, useState } from "react";
+import type { BossStage } from "@/lib/game";
 import type { BossState } from "@/lib/types";
 
 /**
- * Swapping in new art is a one-file change: replace this PNG/WebP. The source
- * is large, so next/image serves a resized, modern-format version. If the file
- * is ever missing or broken, onError falls back to the inline pixel art.
+ * One sprite per visual stage, in evolution order. Replacing the art is a
+ * file swap — nothing else needs to change.
  */
-const BOSS_SPRITE_SRC = "/assets/boss/boss-idle.png";
-const BOSS_SPRITE_READY = true;
+const STAGE_SPRITES = [
+  "/assets/boss/boss-1.png",
+  "/assets/boss/boss-2.png",
+  "/assets/boss/boss-3.png",
+  "/assets/boss/boss-4.png",
+] as const;
 
-/** 16x14 pixel-art demon, used only when the sprite cannot load. */
+/**
+ * Per-stage scale, so each form reads as bigger than the last.
+ *
+ * The source PNGs are all 1254x1254 but their subjects fill very different
+ * amounts of that canvas — measured content boxes are 1138x766, 1142x1147,
+ * 1243x1249 and 1199x1248. Taking sqrt(w*h) as apparent size, they already
+ * render at roughly 75% / 92% / 100% / 98% of one another inside an
+ * object-contain box, so these factors are the correction that lands them on
+ * the intended 72% / 86% / 100% / 108% progression rather than raw scales.
+ */
+const STAGE_SCALE = [0.96, 0.94, 1.0, 1.1] as const;
+
+/** 16x14 pixel-art demon, used only when a sprite cannot load. */
 const BOSS_PIXELS = [
   "..K..........K..",
   ".KHK........KHK.",
@@ -37,7 +53,7 @@ const PIXEL_COLORS: Record<string, string> = {
   T: "#f5f1e8",
 };
 
-const SPRITE_SIZE = "w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80";
+const SPRITE_BOX = "w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80";
 
 /**
  * Aura per escalation level. Applied on the wrapper's filter chain rather than
@@ -66,7 +82,7 @@ const PixelBoss = memo(function PixelBoss() {
     <svg
       viewBox="0 0 16 14"
       shapeRendering="crispEdges"
-      className="w-48 h-42 sm:w-64 sm:h-56 md:w-80 md:h-70"
+      className="h-full w-full"
       role="img"
       aria-label="보스"
     >
@@ -85,19 +101,34 @@ const PixelBoss = memo(function PixelBoss() {
 
 interface BossProps {
   state: BossState;
-  /** Each defeated boss is tinted differently so waves feel distinct. */
-  variant: number;
-  /** 0-3 aura escalation, driven by combo tier and the final rush. */
-  glow?: 0 | 1 | 2 | 3;
+  /** Which form is on screen. Held back by the engine while a boss is dying. */
+  stage: BossStage;
+  /** 0-3 aura escalation from stage, combo tier and the final rush. */
+  aura?: 0 | 1 | 2 | 3;
+  /** Brief flash as a new form appears. */
+  phaseTransition?: boolean;
 }
 
-function Boss({ state, variant, glow = 0 }: BossProps) {
-  const [spriteFailed, setSpriteFailed] = useState(!BOSS_SPRITE_READY);
-  const hueShift = (variant % 6) * 40;
+function Boss({ state, stage, aura = 0, phaseTransition = false }: BossProps) {
+  // Sprites that failed to load fall back to the pixel art for that stage.
+  const [failed, setFailed] = useState<readonly boolean[]>([
+    false,
+    false,
+    false,
+    false,
+  ]);
+
+  const markFailed = useCallback((index: number) => {
+    setFailed((prev) => {
+      if (prev[index]) return prev;
+      const next = [...prev];
+      next[index] = true;
+      return next;
+    });
+  }, []);
 
   const filter = [
-    `hue-rotate(${hueShift}deg)`,
-    GLOW_FILTER[glow],
+    GLOW_FILTER[aura],
     state === "hit" ? "brightness(2.2) saturate(1.3)" : "",
   ]
     .filter(Boolean)
@@ -110,20 +141,39 @@ function Boss({ state, variant, glow = 0 }: BossProps) {
       className={`relative ${STATE_CLASS[state]}`}
       style={{ filter, willChange: "transform, filter" }}
     >
-      {spriteFailed ? (
-        <PixelBoss />
-      ) : (
-        <Image
-          src={BOSS_SPRITE_SRC}
-          alt="보스"
-          width={640}
-          height={640}
-          priority
-          sizes="(min-width: 768px) 320px, (min-width: 640px) 256px, 192px"
-          onError={() => setSpriteFailed(true)}
-          className={`${SPRITE_SIZE} object-contain`}
-        />
-      )}
+      {/*
+        The stage scale lives on this inner box, not the wrapper: the wrapper's
+        hit and defeat keyframes animate `transform` and would overwrite it.
+      */}
+      <div
+        className={`relative ${SPRITE_BOX} transition-transform duration-500 ease-out ${
+          phaseTransition ? "kb-phase-flash" : ""
+        }`}
+        style={{ transform: `scale(${STAGE_SCALE[stage]})` }}
+      >
+        {failed[stage] ? (
+          <PixelBoss />
+        ) : (
+          // All four are mounted so evolving never waits on a download; only
+          // the current stage is visible.
+          STAGE_SPRITES.map((src, index) => (
+            <Image
+              key={src}
+              src={src}
+              alt={index === stage ? "보스" : ""}
+              aria-hidden={index !== stage}
+              width={640}
+              height={640}
+              priority={index === 0}
+              sizes="(min-width: 768px) 320px, (min-width: 640px) 256px, 192px"
+              onError={() => markFailed(index)}
+              className={`absolute inset-0 h-full w-full object-contain ${
+                index === stage ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 }

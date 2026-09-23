@@ -3,7 +3,12 @@
 import Boss from "./Boss";
 import HudStat from "./HudStat";
 import KeyPad from "./KeyPad";
-import { TIER_LABELS } from "@/lib/game";
+import {
+  PHASE_LABELS,
+  STAGE_LABELS,
+  STAGE_NAMES,
+  TIER_LABELS,
+} from "@/lib/game";
 import type { GameSnapshot } from "@/hooks/useKeybreakGame";
 
 const COMBO_TONE = [
@@ -38,25 +43,39 @@ export default function GameScreen({ snapshot }: GameScreenProps) {
   const hpPercent =
     snapshot.bossMaxHp > 0 ? (snapshot.bossHp / snapshot.bossMaxHp) * 100 : 0;
   const tier = snapshot.comboTier;
-  const { banner, finalRush } = snapshot;
+  const { banner, finalRush, bossStage, phaseTransition } = snapshot;
 
-  // The rush nudges the aura one step up — "조금 강화", not a jump to maximum.
-  const bossGlow = Math.min(3, tier + (finalRush ? 1 : 0)) as 0 | 1 | 2 | 3;
+  // Later stages glow on their own; combo and the rush push it further, with
+  // the rush worth one step — "조금 강화", not a jump to maximum.
+  const bossGlow = Math.min(
+    3,
+    Math.max(tier, bossStage) + (finalRush ? 1 : 0),
+  ) as 0 | 1 | 2 | 3;
 
   return (
     <div className="relative flex flex-1 flex-col items-center justify-between gap-4 px-4 py-4 sm:py-6">
       {/* Escalating screen-edge glow. Overlay only — never affects layout. */}
       {tier > 0 && <div className={`kb-edge kb-edge-${tier}`} aria-hidden />}
       {finalRush && <div className="kb-edge kb-edge-rush" aria-hidden />}
+      {phaseTransition && (
+        <div key={`phase-${bossStage}`} className="kb-edge kb-edge-phase" aria-hidden />
+      )}
 
-      {/* Combo tier / final rush shout. */}
+      {/* Combo tier / final rush / evolution shout. */}
       {banner && (
         <div
           key={banner.id}
           aria-hidden
           className="kb-banner pointer-events-none absolute left-1/2 top-[38%] z-20"
         >
-          {banner.kind === "rush" ? (
+          {banner.kind === "phase" ? (
+            <span
+              className="font-pixel whitespace-nowrap text-3xl text-accent sm:text-6xl"
+              style={{ textShadow: "0 5px 0 #26101a, 0 0 34px rgba(244,185,66,0.95)" }}
+            >
+              {PHASE_LABELS[banner.stage]}
+            </span>
+          ) : banner.kind === "rush" ? (
             <span
               className="font-pixel whitespace-nowrap text-3xl text-primary sm:text-6xl"
               style={{ textShadow: "0 5px 0 #26101a, 0 0 30px rgba(232,79,95,0.9)" }}
@@ -76,15 +95,22 @@ export default function GameScreen({ snapshot }: GameScreenProps) {
         </div>
       )}
 
-      {/* Boss HP + timer */}
-      <div className="w-full max-w-3xl">
+      {/* Boss HP + timer. Extra right padding on narrow screens keeps the
+          timer clear of the sound toggle pinned to the top-right corner. */}
+      <div className="w-full max-w-3xl pr-14 sm:pr-28 lg:pr-0">
         <div className="flex items-end justify-between gap-4">
-          <div className="flex-1">
-            <div className="mb-1 flex items-baseline justify-between">
-              <span className="font-pixel text-[10px] tracking-widest text-primary">
-                BOSS {snapshot.bossesDefeated + 1}
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 flex items-baseline justify-between gap-2">
+              {/* Display only — the stage name is never stored or sent. */}
+              <span className="truncate font-pixel text-[7px] tracking-wider text-accent sm:text-[10px]">
+                {STAGE_LABELS[bossStage]}
+                <span className="text-muted"> — </span>
+                <span className="text-primary">{STAGE_NAMES[bossStage]}</span>
               </span>
-              <span className="font-pixel text-[10px] tabular-nums text-muted">
+              <span className="shrink-0 font-pixel text-[7px] tabular-nums text-muted sm:text-[10px]">
+                <span className="hidden sm:inline">
+                  BOSS {snapshot.bossesDefeated + 1} ·{" "}
+                </span>
                 {Math.max(0, Math.ceil(snapshot.bossHp))}/{snapshot.bossMaxHp}
               </span>
             </div>
@@ -115,8 +141,9 @@ export default function GameScreen({ snapshot }: GameScreenProps) {
       <div className="relative flex flex-1 items-center justify-center">
         <Boss
           state={snapshot.bossState}
-          variant={snapshot.bossesDefeated}
-          glow={bossGlow}
+          stage={bossStage}
+          aura={bossGlow}
+          phaseTransition={phaseTransition}
         />
 
         {/* Floating damage numbers, anchored to the boss centre. */}

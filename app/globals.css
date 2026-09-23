@@ -190,6 +190,39 @@ body {
   }
 }
 
+/*
+ * A new boss form arriving: bright flare that settles.
+ * Only `filter` is animated — `transform` on this element carries the
+ * per-stage scale, and animating it here would override that scale.
+ */
+@keyframes kb-phase-flash {
+  0% {
+    filter: brightness(5) saturate(0.1);
+  }
+  30% {
+    filter: brightness(2.4) saturate(1.3);
+  }
+  65% {
+    filter: brightness(1.3) saturate(1.1);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+/* Screen-wide crimson flare at the moment of evolution. */
+@keyframes kb-phase-edge {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* Slow sheen across the first-place row. */
 @keyframes kb-gold-sheen {
   0% {
@@ -255,6 +288,18 @@ body {
 }
 .kb-edge-3 {
   box-shadow: inset 0 0 170px 30px rgba(232, 79, 95, 0.52);
+}
+
+.kb-phase-flash {
+  animation: kb-phase-flash 700ms ease-out;
+}
+
+/* Screen flare at the moment a new form appears. */
+.kb-edge-phase {
+  box-shadow:
+    inset 0 0 200px 60px rgba(232, 79, 95, 0.55),
+    inset 0 0 0 6px rgba(244, 185, 66, 0.5);
+  animation: kb-phase-edge 700ms ease-out forwards;
 }
 
 /* Final rush sits on its own layer so it stacks with the combo glow. */

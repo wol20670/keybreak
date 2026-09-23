@@ -21,13 +21,16 @@ import {
   GAME_DURATION_MS,
   KEY_FLASH_MS,
   MAX_DAMAGE_NUMBERS,
+  PHASE_TRANSITION_MS,
   bossMaxHp,
+  bossVisualStage,
   comboTier,
   finalDpm,
   hitDamage,
   isAttackKey,
   liveDpm,
   type AttackKey,
+  type BossStage,
   type ComboTier,
 } from "@/lib/game";
 import type { BossState, GamePhase, GameResult } from "@/lib/types";
@@ -47,8 +50,9 @@ export interface DamageNumber {
  * `id` increments every time so the UI can re-key and replay the animation.
  */
 export interface Banner {
-  kind: "tier" | "rush";
+  kind: "tier" | "rush" | "phase";
   tier: ComboTier;
+  stage: BossStage;
   id: number;
 }
 
@@ -73,6 +77,13 @@ export interface GameSnapshot {
   banner: Banner | null;
   /** True for the whole last 5 seconds. Visual only. */
   finalRush: boolean;
+  /**
+   * Stage currently on screen. Lags `bossesDefeated` until the dying boss has
+   * finished its defeat burst, so the new sprite never inherits it.
+   */
+  bossStage: BossStage;
+  /** True for a moment after a new stage appears. Visual only. */
+  phaseTransition: boolean;
 }
 
 const EMPTY_SNAPSHOT: GameSnapshot = {
@@ -90,6 +101,8 @@ const EMPTY_SNAPSHOT: GameSnapshot = {
   comboTier: 0,
   banner: null,
   finalRush: false,
+  bossStage: 0,
+  phaseTransition: false,
 };
 
 /** True when the event target is somewhere the user is typing text. */
@@ -130,6 +143,9 @@ export function useKeybreakGame() {
   const bannerUntilRef = useRef(0);
   const bannerIdRef = useRef(0);
   const rushFiredRef = useRef(false);
+  /** Stage actually on screen — held back while a boss is dying. */
+  const displayedStageRef = useRef<BossStage>(0);
+  const phaseUntilRef = useRef(0);
 
   // --- Timer plumbing. ---
   const rafRef = useRef<number | null>(null);
@@ -169,6 +185,8 @@ export function useKeybreakGame() {
     bannerRef.current = null;
     bannerUntilRef.current = 0;
     rushFiredRef.current = false;
+    displayedStageRef.current = 0;
+    phaseUntilRef.current = 0;
     endedRef.current = false;
   }, []);
 
@@ -202,6 +220,7 @@ export function useKeybreakGame() {
       comboTier: 0,
       banner: null,
       finalRush: false,
+      phaseTransition: false,
     }));
     setPhase("RESULT");
   }, [clearTimers]);
@@ -313,9 +332,13 @@ export function useKeybreakGame() {
         comboRef.current = 0;
       }
 
-      const showBanner = (kind: Banner["kind"], tier: ComboTier) => {
+      const showBanner = (
+        kind: Banner["kind"],
+        tier: ComboTier,
+        stage: BossStage,
+      ) => {
         bannerIdRef.current += 1;
-        bannerRef.current = { kind, tier, id: bannerIdRef.current };
+        bannerRef.current = { kind, tier, stage, id: bannerIdRef.current };
         bannerUntilRef.current = now + BANNER_MS;
       };
 
@@ -327,14 +350,39 @@ export function useKeybreakGame() {
         streakTierRef.current = 0;
       } else if (tier > streakTierRef.current) {
         streakTierRef.current = tier;
-        showBanner("tier", tier);
+        showBanner("tier", tier, displayedStageRef.current);
       }
 
       // Final stretch. Purely cosmetic — the clock above is untouched.
       const finalRush = timeLeftMs <= FINAL_RUSH_MS;
       if (finalRush && !rushFiredRef.current) {
         rushFiredRef.current = true;
-        showBanner("rush", tier);
+        showBanner("rush", tier, displayedStageRef.current);
+      }
+
+      // Boss evolution. The displayed stage is held back while a boss is
+      // playing its defeat burst, so the dying sprite finishes its own
+      // animation and only then does the next form appear. The kill counter,
+      // the HP reset and the clock are untouched by this — it is display lag
+      // only, and input keeps scoring throughout.
+      //
+      // Evolutions advance one step at a time and wait for the previous flash
+      // to finish, so no stage is ever skipped. At human tapping speed the
+      // target is never more than one stage ahead and this is a no-op; it only
+      // matters when several bosses die between two frames, where stepping
+      // keeps every PHASE banner in order instead of jumping straight to the
+      // last one.
+      const dying = now < bossDefeatUntilRef.current;
+      const evolving = now < phaseUntilRef.current;
+      if (!dying && !evolving) {
+        const target = bossVisualStage(bossesDefeatedRef.current);
+        if (target > displayedStageRef.current) {
+          const next = (displayedStageRef.current + 1) as BossStage;
+          displayedStageRef.current = next;
+          phaseUntilRef.current = now + PHASE_TRANSITION_MS;
+          // Fired after the tier/rush checks so an evolution wins the frame.
+          showBanner("phase", tier, next);
+        }
       }
 
       if (bannerRef.current && now >= bannerUntilRef.current) {
@@ -373,6 +421,8 @@ export function useKeybreakGame() {
         comboTier: tier,
         banner: bannerRef.current,
         finalRush,
+        bossStage: displayedStageRef.current,
+        phaseTransition: now < phaseUntilRef.current,
       });
 
       rafRef.current = requestAnimationFrame(tick);

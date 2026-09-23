@@ -80,6 +80,36 @@ export function comboTier(combo: number): 0 | 1 | 2 | 3 {
 
 export type ComboTier = ReturnType<typeof comboTier>;
 
+/**
+ * Visual boss stage. Purely cosmetic: the boss HP curve, the damage formula
+ * and everything that gets stored are unchanged — only the sprite and the
+ * surrounding presentation differ.
+ */
+export type BossStage = 0 | 1 | 2 | 3;
+
+export const KILLS_PER_STAGE = 3;
+
+/** 0-2 kills → I, 3-5 → II, 6-8 → III, 9+ → FINAL. */
+export function bossVisualStage(bossesDefeated: number): BossStage {
+  return Math.min(3, Math.floor(bossesDefeated / KILLS_PER_STAGE)) as BossStage;
+}
+
+export const STAGE_LABELS = ["STAGE I", "STAGE II", "STAGE III", "FINAL"] as const;
+
+/** Display-only names. Never stored, never sent to the API. */
+export const STAGE_NAMES = [
+  "CRIMSON SLIME",
+  "INFERNAL GUARD",
+  "ABYSS KNIGHT",
+  "KEYBREAKER LORD",
+] as const;
+
+/** Shout on entering each stage. Index 0 is unused — stage I is the start. */
+export const PHASE_LABELS = ["", "PHASE II", "PHASE III", "FINAL FORM"] as const;
+
+/** How long the evolution flash runs once the new sprite appears. */
+export const PHASE_TRANSITION_MS = 700;
+
 /** Shout shown the first time a streak reaches each tier. Index 0 is unused. */
 export const TIER_LABELS = ["", "RAMPAGE!", "FRENZY!", "KEYBREAKER!!"] as const;
 
