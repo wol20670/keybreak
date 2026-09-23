@@ -10,21 +10,25 @@ import {
 } from "@/lib/audio";
 import {
   ATTACK_KEYS,
+  BANNER_MS,
   BOSS_DEFEAT_MS,
   BOSS_HIT_MS,
   COMBO_TIMEOUT_MS,
   COUNTDOWN_STEPS,
   COUNTDOWN_STEP_MS,
   DAMAGE_NUMBER_MS,
+  FINAL_RUSH_MS,
   GAME_DURATION_MS,
   KEY_FLASH_MS,
   MAX_DAMAGE_NUMBERS,
   bossMaxHp,
+  comboTier,
   finalDpm,
   hitDamage,
   isAttackKey,
   liveDpm,
   type AttackKey,
+  type ComboTier,
 } from "@/lib/game";
 import type { BossState, GamePhase, GameResult } from "@/lib/types";
 
@@ -36,6 +40,16 @@ export interface DamageNumber {
   y: number;
   bornAt: number;
   crit: boolean;
+}
+
+/**
+ * A one-shot shout: a combo tier being reached, or the final rush starting.
+ * `id` increments every time so the UI can re-key and replay the animation.
+ */
+export interface Banner {
+  kind: "tier" | "rush";
+  tier: ComboTier;
+  id: number;
 }
 
 /**
@@ -54,6 +68,11 @@ export interface GameSnapshot {
   bossState: BossState;
   activeKeys: AttackKey[];
   damageNumbers: DamageNumber[];
+  /** Tier of the combo running right now — drives the escalating glow. */
+  comboTier: ComboTier;
+  banner: Banner | null;
+  /** True for the whole last 5 seconds. Visual only. */
+  finalRush: boolean;
 }
 
 const EMPTY_SNAPSHOT: GameSnapshot = {
@@ -68,6 +87,9 @@ const EMPTY_SNAPSHOT: GameSnapshot = {
   bossState: "idle",
   activeKeys: [],
   damageNumbers: [],
+  comboTier: 0,
+  banner: null,
+  finalRush: false,
 };
 
 /** True when the event target is somewhere the user is typing text. */
@@ -100,6 +122,14 @@ export function useKeybreakGame() {
   const keyFlashRef = useRef<Map<AttackKey, number>>(new Map());
   const damageNumbersRef = useRef<DamageNumber[]>([]);
   const damageIdRef = useRef(0);
+
+  // --- Presentation state. Derived in the rAF loop, never in the key path. ---
+  /** Highest tier the current combo streak has reached. */
+  const streakTierRef = useRef<ComboTier>(0);
+  const bannerRef = useRef<Banner | null>(null);
+  const bannerUntilRef = useRef(0);
+  const bannerIdRef = useRef(0);
+  const rushFiredRef = useRef(false);
 
   // --- Timer plumbing. ---
   const rafRef = useRef<number | null>(null);
@@ -135,6 +165,10 @@ export function useKeybreakGame() {
     heldKeysRef.current.clear();
     keyFlashRef.current.clear();
     damageNumbersRef.current = [];
+    streakTierRef.current = 0;
+    bannerRef.current = null;
+    bannerUntilRef.current = 0;
+    rushFiredRef.current = false;
     endedRef.current = false;
   }, []);
 
@@ -165,6 +199,9 @@ export function useKeybreakGame() {
       maxCombo: maxComboRef.current,
       activeKeys: [],
       damageNumbers: [],
+      comboTier: 0,
+      banner: null,
+      finalRush: false,
     }));
     setPhase("RESULT");
   }, [clearTimers]);
@@ -276,6 +313,34 @@ export function useKeybreakGame() {
         comboRef.current = 0;
       }
 
+      const showBanner = (kind: Banner["kind"], tier: ComboTier) => {
+        bannerIdRef.current += 1;
+        bannerRef.current = { kind, tier, id: bannerIdRef.current };
+        bannerUntilRef.current = now + BANNER_MS;
+      };
+
+      // Combo tiers. Reaching a tier shouts once per streak: a broken combo
+      // resets the marker so rebuilding it earns the shout again, while
+      // holding the same tier stays quiet.
+      const tier = comboTier(comboRef.current);
+      if (comboRef.current === 0) {
+        streakTierRef.current = 0;
+      } else if (tier > streakTierRef.current) {
+        streakTierRef.current = tier;
+        showBanner("tier", tier);
+      }
+
+      // Final stretch. Purely cosmetic — the clock above is untouched.
+      const finalRush = timeLeftMs <= FINAL_RUSH_MS;
+      if (finalRush && !rushFiredRef.current) {
+        rushFiredRef.current = true;
+        showBanner("rush", tier);
+      }
+
+      if (bannerRef.current && now >= bannerUntilRef.current) {
+        bannerRef.current = null;
+      }
+
       const activeKeys = ATTACK_KEYS.filter((key) => {
         if (heldKeysRef.current.has(key)) return true;
         const until = keyFlashRef.current.get(key);
@@ -305,6 +370,9 @@ export function useKeybreakGame() {
         bossState,
         activeKeys,
         damageNumbers: damageNumbersRef.current.slice(),
+        comboTier: tier,
+        banner: bannerRef.current,
+        finalRush,
       });
 
       rafRef.current = requestAnimationFrame(tick);

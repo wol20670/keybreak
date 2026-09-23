@@ -77,3 +77,25 @@ export function comboTier(combo: number): 0 | 1 | 2 | 3 {
   if (combo >= 30) return 1;
   return 0;
 }
+
+export type ComboTier = ReturnType<typeof comboTier>;
+
+/** Shout shown the first time a streak reaches each tier. Index 0 is unused. */
+export const TIER_LABELS = ["", "RAMPAGE!", "FRENZY!", "KEYBREAKER!!"] as const;
+
+/** How long a tier / final-rush banner stays on screen. */
+export const BANNER_MS = 750;
+
+/** Last stretch of the run, used only for visuals — never for scoring. */
+export const FINAL_RUSH_MS = 5_000;
+
+/**
+ * Display-only rank for the result screen. Never stored, never sent to the
+ * API — the saved record is still just dpm / hits / combo.
+ */
+export function scoreGrade(dpm: number): "S" | "A" | "B" | "C" {
+  if (dpm >= 1000) return "S";
+  if (dpm >= 800) return "A";
+  if (dpm >= 600) return "B";
+  return "C";
+}

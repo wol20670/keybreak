@@ -5,6 +5,37 @@ import type { ApiError, RankingEntry } from "@/lib/types";
 
 type Status = "loading" | "ok" | "error";
 
+/**
+ * Presentation only for the top three rows — the query, the ordering and the
+ * `rank` values all come from the API untouched.
+ */
+const PODIUM: Record<
+  number,
+  { label: string; rank: string; name: string; row: string; dpm: string }
+> = {
+  1: {
+    label: "1ST",
+    rank: "text-accent",
+    name: "text-accent font-bold",
+    row: "kb-gold-row bg-accent/10",
+    dpm: "text-accent text-base",
+  },
+  2: {
+    label: "2ND",
+    rank: "text-bone",
+    name: "text-bone",
+    row: "bg-bone/5",
+    dpm: "text-sm text-accent",
+  },
+  3: {
+    label: "3RD",
+    rank: "text-primary",
+    name: "text-bone",
+    row: "bg-primary/5",
+    dpm: "text-sm text-accent",
+  },
+};
+
 type LoadResult =
   | { ok: true; entries: RankingEntry[] }
   | { ok: false; message: string };
@@ -135,21 +166,28 @@ export default function RankingPanel({
               <tbody>
                 {entries.map((entry) => {
                   const isMine = entry.id === highlightId;
+                  const podium = PODIUM[entry.rank];
                   return (
                     <tr
                       key={entry.id}
                       className={`border-t border-surface-2 ${
-                        isMine ? "bg-primary/20" : ""
-                      }`}
+                        podium?.row ?? ""
+                      } ${isMine ? "bg-primary/20" : ""}`}
                     >
                       <td
-                        className={`px-2 py-2.5 font-pixel text-xs tabular-nums ${
-                          entry.rank <= 3 ? "text-accent" : "text-muted"
+                        className={`px-2 py-2.5 font-pixel tabular-nums ${
+                          podium
+                            ? `text-xs ${podium.rank}`
+                            : "text-xs text-muted"
                         }`}
                       >
-                        {entry.rank}
+                        {podium?.label ?? entry.rank}
                       </td>
-                      <td className="max-w-[10rem] truncate px-2 py-2.5 text-sm text-bone">
+                      <td
+                        className={`max-w-[10rem] truncate px-2 py-2.5 text-sm ${
+                          podium?.name ?? "text-bone"
+                        }`}
+                      >
                         {entry.nickname}
                         {isMine && (
                           <span className="ml-2 font-pixel text-[8px] text-primary">
@@ -157,7 +195,11 @@ export default function RankingPanel({
                           </span>
                         )}
                       </td>
-                      <td className="px-2 py-2.5 text-right font-pixel text-sm tabular-nums text-accent">
+                      <td
+                        className={`px-2 py-2.5 text-right font-pixel tabular-nums ${
+                          podium?.dpm ?? "text-sm text-accent"
+                        }`}
+                      >
                         {entry.dpm}
                       </td>
                       <td className="px-2 py-2.5 text-right font-pixel text-xs tabular-nums text-muted">

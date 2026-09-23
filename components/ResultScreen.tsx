@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import HudStat from "./HudStat";
-import { MAX_NICKNAME_LENGTH } from "@/lib/game";
+import { MAX_NICKNAME_LENGTH, scoreGrade } from "@/lib/game";
+import { readBestDpm, writeBestDpm } from "@/lib/personalBest";
 import type { ApiError, GameResult, RankingEntry } from "@/lib/types";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+const GRADE_TONE: Record<ReturnType<typeof scoreGrade>, string> = {
+  S: "text-accent",
+  A: "text-primary",
+  B: "text-bone",
+  C: "text-muted",
+};
 
 interface ResultScreenProps {
   result: GameResult;
@@ -25,6 +33,17 @@ export default function ResultScreen({
 
   const trimmed = nickname.trim();
   const canSave = trimmed.length > 0 && status !== "saving" && status !== "saved";
+
+  // Read once during render — a pure read, so StrictMode's double invoke is
+  // harmless. The write happens in the effect below, never during render.
+  const [previousBest] = useState(() => readBestDpm());
+  const isNewBest = result.dpm > previousBest;
+  const bestDpm = Math.max(previousBest, result.dpm);
+  const grade = scoreGrade(result.dpm);
+
+  useEffect(() => {
+    writeBestDpm(result.dpm);
+  }, [result.dpm]);
 
   async function save() {
     if (!canSave) return;
@@ -70,16 +89,50 @@ export default function ResultScreen({
       </h2>
 
       <div className="kb-panel flex w-full max-w-lg flex-col items-center gap-5 rounded-lg bg-surface/80 px-5 py-7">
-        <div className="flex flex-col items-center">
-          <span className="font-pixel text-[10px] tracking-widest text-muted">
-            FINAL DPM
+        <div className="flex items-center justify-center gap-6 sm:gap-10">
+          <div className="flex flex-col items-center">
+            <span className="font-pixel text-[10px] tracking-widest text-muted">
+              FINAL DPM
+            </span>
+            <span
+              className="font-pixel text-5xl tabular-nums text-primary sm:text-7xl"
+              style={{ textShadow: "0 5px 0 #26101a" }}
+            >
+              {result.dpm}
+            </span>
+          </div>
+
+          <div className="flex flex-col items-center">
+            <span className="font-pixel text-[10px] tracking-widest text-muted">
+              GRADE
+            </span>
+            <span
+              className={`font-pixel text-5xl sm:text-7xl ${GRADE_TONE[grade]}`}
+              style={{
+                textShadow:
+                  grade === "S"
+                    ? "0 5px 0 #26101a, 0 0 28px rgba(244,185,66,0.85)"
+                    : "0 5px 0 #26101a",
+              }}
+            >
+              {grade}
+            </span>
+          </div>
+        </div>
+
+        {/* Local-only record. Never sent to the API. */}
+        <div className="flex items-center gap-3">
+          <span className="font-pixel text-[9px] tracking-widest text-muted">
+            PERSONAL BEST
           </span>
-          <span
-            className="font-pixel text-5xl tabular-nums text-primary sm:text-7xl"
-            style={{ textShadow: "0 5px 0 #26101a" }}
-          >
-            {result.dpm}
+          <span className="font-pixel text-sm tabular-nums text-bone">
+            {bestDpm}
           </span>
+          {isNewBest && (
+            <span className="kb-blink font-pixel text-[9px] tracking-widest text-accent">
+              NEW BEST!
+            </span>
+          )}
         </div>
 
         <div className="flex w-full items-start justify-around border-t-2 border-surface-2 pt-5">

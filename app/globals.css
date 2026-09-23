@@ -156,6 +156,50 @@ body {
   }
 }
 
+/* Combo tier / final rush shout. */
+@keyframes kb-banner-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4) rotate(-6deg);
+  }
+  22% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.18) rotate(2deg);
+  }
+  38% {
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.02);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+}
+
+/* Screen-edge crimson breathing during the final five seconds. */
+@keyframes kb-edge-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Slow sheen across the first-place row. */
+@keyframes kb-gold-sheen {
+  0% {
+    background-position: -140% 0;
+  }
+  100% {
+    background-position: 240% 0;
+  }
+}
+
 @keyframes kb-blink {
   0%,
   49% {
@@ -189,10 +233,55 @@ body {
   animation: kb-blink 1s steps(1) infinite;
 }
 
+.kb-banner {
+  animation: kb-banner-pop 750ms ease-out forwards;
+}
+
+/*
+ * Combo escalation, drawn as an inset ring on an overlay so it never affects
+ * layout or intercepts clicks. Intensity rises with the tier.
+ */
+.kb-edge {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: box-shadow 220ms ease-out;
+}
+.kb-edge-1 {
+  box-shadow: inset 0 0 90px 10px rgba(232, 79, 95, 0.22);
+}
+.kb-edge-2 {
+  box-shadow: inset 0 0 130px 20px rgba(232, 79, 95, 0.36);
+}
+.kb-edge-3 {
+  box-shadow: inset 0 0 170px 30px rgba(232, 79, 95, 0.52);
+}
+
+/* Final rush sits on its own layer so it stacks with the combo glow. */
+.kb-edge-rush {
+  box-shadow:
+    inset 0 0 120px 24px rgba(232, 79, 95, 0.45),
+    inset 0 0 0 4px rgba(232, 79, 95, 0.55);
+  animation: kb-edge-pulse 620ms ease-in-out infinite;
+}
+
+.kb-gold-row {
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(244, 185, 66, 0.16) 48%,
+    transparent 66%
+  );
+  background-size: 220% 100%;
+  animation: kb-gold-sheen 3.2s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .kb-boss-idle,
   .kb-glow,
-  .kb-blink {
+  .kb-blink,
+  .kb-edge-rush,
+  .kb-gold-row {
     animation: none;
   }
 }

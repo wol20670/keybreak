@@ -38,7 +38,18 @@ const PIXEL_COLORS: Record<string, string> = {
 };
 
 const SPRITE_SIZE = "w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80";
-const GLOW = "drop-shadow-[0_0_34px_rgba(232,79,95,0.55)]";
+
+/**
+ * Aura per escalation level. Applied on the wrapper's filter chain rather than
+ * as a class, because the wrapper already sets `filter` inline and the two
+ * would otherwise overwrite each other.
+ */
+const GLOW_FILTER = [
+  "drop-shadow(0 0 28px rgba(232, 79, 95, 0.5))",
+  "drop-shadow(0 0 42px rgba(232, 79, 95, 0.7))",
+  "drop-shadow(0 0 58px rgba(232, 79, 95, 0.9))",
+  "drop-shadow(0 0 74px rgba(244, 185, 66, 0.95))",
+] as const;
 
 const STATE_CLASS: Record<BossState, string> = {
   idle: "kb-boss-idle",
@@ -55,7 +66,7 @@ const PixelBoss = memo(function PixelBoss() {
     <svg
       viewBox="0 0 16 14"
       shapeRendering="crispEdges"
-      className={`w-48 h-42 sm:w-64 sm:h-56 md:w-80 md:h-70 ${GLOW}`}
+      className="w-48 h-42 sm:w-64 sm:h-56 md:w-80 md:h-70"
       role="img"
       aria-label="보스"
     >
@@ -76,24 +87,28 @@ interface BossProps {
   state: BossState;
   /** Each defeated boss is tinted differently so waves feel distinct. */
   variant: number;
+  /** 0-3 aura escalation, driven by combo tier and the final rush. */
+  glow?: 0 | 1 | 2 | 3;
 }
 
-function Boss({ state, variant }: BossProps) {
+function Boss({ state, variant, glow = 0 }: BossProps) {
   const [spriteFailed, setSpriteFailed] = useState(!BOSS_SPRITE_READY);
   const hueShift = (variant % 6) * 40;
+
+  const filter = [
+    `hue-rotate(${hueShift}deg)`,
+    GLOW_FILTER[glow],
+    state === "hit" ? "brightness(2.2) saturate(1.3)" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div
       // Flipping between hit/idle is what restarts the shake; the brightness
       // filter carries the feedback during sustained tapping.
       className={`relative ${STATE_CLASS[state]}`}
-      style={{
-        filter:
-          state === "hit"
-            ? `hue-rotate(${hueShift}deg) brightness(2.2) saturate(1.3)`
-            : `hue-rotate(${hueShift}deg)`,
-        willChange: "transform, filter",
-      }}
+      style={{ filter, willChange: "transform, filter" }}
     >
       {spriteFailed ? (
         <PixelBoss />
@@ -106,7 +121,7 @@ function Boss({ state, variant }: BossProps) {
           priority
           sizes="(min-width: 768px) 320px, (min-width: 640px) 256px, 192px"
           onError={() => setSpriteFailed(true)}
-          className={`${SPRITE_SIZE} object-contain ${GLOW}`}
+          className={`${SPRITE_SIZE} object-contain`}
         />
       )}
     </div>

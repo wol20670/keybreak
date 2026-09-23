@@ -3,7 +3,7 @@
 import Boss from "./Boss";
 import HudStat from "./HudStat";
 import KeyPad from "./KeyPad";
-import { comboTier } from "@/lib/game";
+import { TIER_LABELS } from "@/lib/game";
 import type { GameSnapshot } from "@/hooks/useKeybreakGame";
 
 const COMBO_TONE = [
@@ -11,6 +11,21 @@ const COMBO_TONE = [
   "text-bone",
   "text-accent",
   "text-primary",
+] as const;
+
+/** Banner colour per tier; the final rush shout uses its own styling. */
+const BANNER_TONE = [
+  "text-bone",
+  "text-bone",
+  "text-accent",
+  "text-primary",
+] as const;
+
+const BANNER_SIZE = [
+  "text-3xl sm:text-5xl",
+  "text-3xl sm:text-5xl",
+  "text-4xl sm:text-6xl",
+  "text-4xl sm:text-7xl",
 ] as const;
 
 interface GameScreenProps {
@@ -22,10 +37,45 @@ export default function GameScreen({ snapshot }: GameScreenProps) {
   const urgent = seconds <= 5;
   const hpPercent =
     snapshot.bossMaxHp > 0 ? (snapshot.bossHp / snapshot.bossMaxHp) * 100 : 0;
-  const tier = comboTier(snapshot.combo);
+  const tier = snapshot.comboTier;
+  const { banner, finalRush } = snapshot;
+
+  // The rush nudges the aura one step up — "조금 강화", not a jump to maximum.
+  const bossGlow = Math.min(3, tier + (finalRush ? 1 : 0)) as 0 | 1 | 2 | 3;
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-between gap-4 px-4 py-4 sm:py-6">
+    <div className="relative flex flex-1 flex-col items-center justify-between gap-4 px-4 py-4 sm:py-6">
+      {/* Escalating screen-edge glow. Overlay only — never affects layout. */}
+      {tier > 0 && <div className={`kb-edge kb-edge-${tier}`} aria-hidden />}
+      {finalRush && <div className="kb-edge kb-edge-rush" aria-hidden />}
+
+      {/* Combo tier / final rush shout. */}
+      {banner && (
+        <div
+          key={banner.id}
+          aria-hidden
+          className="kb-banner pointer-events-none absolute left-1/2 top-[38%] z-20"
+        >
+          {banner.kind === "rush" ? (
+            <span
+              className="font-pixel whitespace-nowrap text-3xl text-primary sm:text-6xl"
+              style={{ textShadow: "0 5px 0 #26101a, 0 0 30px rgba(232,79,95,0.9)" }}
+            >
+              FINAL RUSH
+            </span>
+          ) : (
+            <span
+              className={`font-pixel whitespace-nowrap ${BANNER_SIZE[banner.tier]} ${
+                BANNER_TONE[banner.tier]
+              }`}
+              style={{ textShadow: "0 5px 0 #26101a, 0 0 26px rgba(244,185,66,0.7)" }}
+            >
+              {TIER_LABELS[banner.tier]}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Boss HP + timer */}
       <div className="w-full max-w-3xl">
         <div className="flex items-end justify-between gap-4">
@@ -63,7 +113,11 @@ export default function GameScreen({ snapshot }: GameScreenProps) {
 
       {/* Boss stage */}
       <div className="relative flex flex-1 items-center justify-center">
-        <Boss state={snapshot.bossState} variant={snapshot.bossesDefeated} />
+        <Boss
+          state={snapshot.bossState}
+          variant={snapshot.bossesDefeated}
+          glow={bossGlow}
+        />
 
         {/* Floating damage numbers, anchored to the boss centre. */}
         <div className="pointer-events-none absolute inset-0">
@@ -87,7 +141,7 @@ export default function GameScreen({ snapshot }: GameScreenProps) {
         {snapshot.combo >= 30 && (
           <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2">
             <span
-              className={`font-pixel text-xl sm:text-3xl tabular-nums ${COMBO_TONE[tier]}`}
+              className={`font-pixel whitespace-nowrap text-xl sm:text-3xl tabular-nums ${COMBO_TONE[tier]}`}
               style={{ textShadow: "0 3px 0 #26101a" }}
             >
               {snapshot.combo} COMBO
