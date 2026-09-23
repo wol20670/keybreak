@@ -3,6 +3,7 @@
 import { useState } from "react";
 import CountdownScreen from "@/components/CountdownScreen";
 import GameScreen from "@/components/GameScreen";
+import MuteButton from "@/components/MuteButton";
 import RankingPanel from "@/components/RankingPanel";
 import ResultScreen from "@/components/ResultScreen";
 import StartScreen from "@/components/StartScreen";
@@ -17,6 +18,8 @@ export default function Home() {
 
   return (
     <main className="kb-dungeon kb-scanlines kb-vignette relative flex min-h-dvh flex-1 flex-col overflow-hidden">
+      <MuteButton />
+
       {phase === "START" && (
         <StartScreen
           onStart={startGame}

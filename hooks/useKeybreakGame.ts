@@ -2,6 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  initAudio,
+  playCountdown,
+  playDefeat,
+  playGameOver,
+  playHit,
+} from "@/lib/audio";
+import {
   ATTACK_KEYS,
   BOSS_DEFEAT_MS,
   BOSS_HIT_MS,
@@ -140,6 +147,7 @@ export function useKeybreakGame() {
     endedRef.current = true;
     clearTimers();
     phaseRef.current = "RESULT";
+    playGameOver();
 
     const totalHits = hitsRef.current;
     setResult({
@@ -179,12 +187,15 @@ export function useKeybreakGame() {
     bossHpRef.current -= damage;
     bossHitUntilRef.current = now + BOSS_HIT_MS;
 
+    playHit(comboRef.current);
+
     if (bossHpRef.current <= 0) {
       bossesDefeatedRef.current += 1;
       bossDefeatUntilRef.current = now + BOSS_DEFEAT_MS;
       const nextMax = bossMaxHp(bossesDefeatedRef.current);
       bossMaxHpRef.current = nextMax;
       bossHpRef.current = nextMax;
+      playDefeat();
     }
 
     keyFlashRef.current.set(key, now + KEY_FLASH_MS);
@@ -316,12 +327,20 @@ export function useKeybreakGame() {
     phaseRef.current = "COUNTDOWN";
     setPhase("COUNTDOWN");
 
+    // START / RETRY are clicks, so this is the user gesture audio needs.
+    initAudio();
+    playCountdown(false);
+
+    const lastStep = COUNTDOWN_STEPS.length - 1;
     let delay = 0;
     COUNTDOWN_STEPS.forEach((_, index) => {
       if (index > 0) {
         delay += COUNTDOWN_STEP_MS[index - 1];
         countdownTimeoutsRef.current.push(
-          setTimeout(() => setCountdownIndex(index), delay),
+          setTimeout(() => {
+            setCountdownIndex(index);
+            playCountdown(index === lastStep);
+          }, delay),
         );
       }
     });
