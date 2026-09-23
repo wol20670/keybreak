@@ -1,61 +1,132 @@
 import { NextResponse } from "next/server";
-import { getSql, isMissingTableError } from "@/lib/db";
+import { FieldValue } from "firebase-admin/firestore";
+import type { DocumentData, DocumentSnapshot } from "firebase-admin/firestore";
+import {
+  SCORES_COLLECTION,
+  extractIndexUrl,
+  getDb,
+  isAuthError,
+  isMissingIndexError,
+  isNotFoundError,
+} from "@/lib/firebase";
 import { MAX_NICKNAME_LENGTH, MAX_TOTAL_HITS, finalDpm } from "@/lib/game";
 import type { RankingEntry } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+// firebase-admin is a Node SDK and cannot run on the edge runtime.
+export const runtime = "nodejs";
+// Firestore for this project lives in asia-northeast3, so keep the function
+// next to it instead of the default us-east.
+export const preferredRegion = "icn1";
 
 const RANKING_LIMIT = 20;
+
+/**
+ * How many rows the fallback path pulls before sorting in memory. Only used
+ * while the composite index is missing or still building.
+ */
+const FALLBACK_FETCH = 100;
 
 const DB_NOT_CONFIGURED = {
   error: "DB_NOT_CONFIGURED",
   message: "랭킹 서버가 아직 연결되지 않았습니다. 잠시 후 다시 시도해 주세요.",
 };
 
-const SCHEMA_MISSING = {
-  error: "SCHEMA_MISSING",
-  message: "랭킹 테이블이 아직 생성되지 않았습니다. db/schema.sql을 실행해 주세요.",
+const DB_UNAVAILABLE = {
+  error: "DB_UNAVAILABLE",
+  message: "랭킹 데이터베이스에 접근할 수 없습니다. 잠시 후 다시 시도해 주세요.",
 };
 
-interface ScoreRecord {
-  id: string;
-  nickname: string;
-  dpm: number;
-  total_hits: number;
-  max_combo: number;
-  created_at: string | Date;
+/** Log the index hint once per process instead of on every request. */
+let warnedAboutIndex = false;
+function warnMissingIndex(error: unknown) {
+  if (warnedAboutIndex) return;
+  warnedAboutIndex = true;
+  const url = extractIndexUrl(error);
+  console.warn(
+    "Composite index (dpm DESC, createdAt ASC) is missing or still building; " +
+      "serving the ranking from the in-memory fallback." +
+      (url ? ` Create it here: ${url}` : " Run `npm run db:index`."),
+  );
 }
 
-function toEntry(row: ScoreRecord, index: number): RankingEntry {
+/**
+ * Firestore Timestamps must never reach the JSON response — the client expects
+ * an ISO string. serverTimestamp() also reads back as null for an instant
+ * before it resolves, so that case is handled too.
+ */
+function toIso(value: unknown): string {
+  if (value && typeof (value as { toDate?: unknown }).toDate === "function") {
+    return (value as { toDate: () => Date }).toDate().toISOString();
+  }
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") return value;
+  return new Date(0).toISOString();
+}
+
+function toEntry(doc: DocumentSnapshot<DocumentData>, index: number): RankingEntry {
+  const data = doc.data() ?? {};
   return {
     rank: index + 1,
-    id: row.id,
-    nickname: row.nickname,
-    dpm: row.dpm,
-    totalHits: row.total_hits,
-    maxCombo: row.max_combo,
-    createdAt: new Date(row.created_at).toISOString(),
+    id: doc.id,
+    nickname: String(data.nickname ?? ""),
+    dpm: Number(data.dpm ?? 0),
+    totalHits: Number(data.totalHits ?? 0),
+    maxCombo: Number(data.maxCombo ?? 0),
+    createdAt: toIso(data.createdAt),
   };
+}
+
+/** Highest DPM first; on a tie the earlier run ranks higher. */
+function byRank(a: RankingEntry, b: RankingEntry): number {
+  return b.dpm - a.dpm || a.createdAt.localeCompare(b.createdAt);
+}
+
+function unavailable(error: unknown): NextResponse | null {
+  if (isAuthError(error) || isNotFoundError(error)) {
+    return NextResponse.json(DB_UNAVAILABLE, { status: 503 });
+  }
+  return null;
 }
 
 /** GET /api/scores — top 20, highest DPM first, earliest run wins ties. */
 export async function GET() {
-  const sql = getSql();
-  if (!sql) return NextResponse.json(DB_NOT_CONFIGURED, { status: 503 });
+  const db = getDb();
+  if (!db) return NextResponse.json(DB_NOT_CONFIGURED, { status: 503 });
 
   try {
-    const rows = (await sql`
-      SELECT id, nickname, dpm, total_hits, max_combo, created_at
-      FROM scores
-      ORDER BY dpm DESC, created_at ASC
-      LIMIT ${RANKING_LIMIT}
-    `) as ScoreRecord[];
+    let entries: RankingEntry[];
 
-    return NextResponse.json({ entries: rows.map(toEntry) });
-  } catch (error) {
-    if (isMissingTableError(error)) {
-      return NextResponse.json(SCHEMA_MISSING, { status: 503 });
+    try {
+      // Exact ordering. Needs the (dpm DESC, createdAt ASC) composite index.
+      const snapshot = await db
+        .collection(SCORES_COLLECTION)
+        .orderBy("dpm", "desc")
+        .orderBy("createdAt", "asc")
+        .limit(RANKING_LIMIT)
+        .get();
+      entries = snapshot.docs.map(toEntry);
+    } catch (error) {
+      if (!isMissingIndexError(error)) throw error;
+      // Fallback: single-field order (always indexed), tie-break in memory, so
+      // the ranking keeps working while the composite index is built.
+      warnMissingIndex(error);
+      const snapshot = await db
+        .collection(SCORES_COLLECTION)
+        .orderBy("dpm", "desc")
+        .limit(FALLBACK_FETCH)
+        .get();
+      entries = snapshot.docs
+        .map(toEntry)
+        .sort(byRank)
+        .slice(0, RANKING_LIMIT)
+        .map((entry, index) => ({ ...entry, rank: index + 1 }));
     }
+
+    return NextResponse.json({ entries });
+  } catch (error) {
+    const response = unavailable(error);
+    if (response) return response;
     console.error("GET /api/scores failed:", error);
     return NextResponse.json(
       { error: "QUERY_FAILED", message: "랭킹을 불러오지 못했습니다." },
@@ -104,22 +175,25 @@ export async function POST(request: Request) {
     return invalid("DPM이 타격 수와 일치하지 않습니다.");
   }
 
-  const sql = getSql();
-  if (!sql) return NextResponse.json(DB_NOT_CONFIGURED, { status: 503 });
+  const db = getDb();
+  if (!db) return NextResponse.json(DB_NOT_CONFIGURED, { status: 503 });
 
   try {
-    // Tagged template => parameter binding. Never build SQL by concatenation.
-    const rows = (await sql`
-      INSERT INTO scores (nickname, dpm, total_hits, max_combo)
-      VALUES (${trimmed}, ${dpm}, ${totalHits}, ${maxCombo})
-      RETURNING id, nickname, dpm, total_hits, max_combo, created_at
-    `) as ScoreRecord[];
+    const ref = await db.collection(SCORES_COLLECTION).add({
+      nickname: trimmed,
+      dpm,
+      totalHits,
+      maxCombo,
+      createdAt: FieldValue.serverTimestamp(),
+    });
 
-    return NextResponse.json({ score: toEntry(rows[0], 0) }, { status: 201 });
+    // Read back so the response carries the resolved server timestamp rather
+    // than an unresolved sentinel.
+    const snapshot = await ref.get();
+    return NextResponse.json({ score: toEntry(snapshot, 0) }, { status: 201 });
   } catch (error) {
-    if (isMissingTableError(error)) {
-      return NextResponse.json(SCHEMA_MISSING, { status: 503 });
-    }
+    const response = unavailable(error);
+    if (response) return response;
     console.error("POST /api/scores failed:", error);
     return NextResponse.json(
       { error: "INSERT_FAILED", message: "기록 저장에 실패했습니다." },

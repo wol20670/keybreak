@@ -7,10 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:migrate": "node --env-file=.env scripts/migrate.mjs"
+    "env:firebase": "node scripts/setup-firebase-env.mjs",
+    "db:check": "node --env-file=.env scripts/check-firestore.mjs",
+    "db:index": "node --env-file=.env scripts/create-index.mjs",
+    "env:vercel": "node scripts/push-vercel-env.mjs"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.1.0",
+    "firebase-admin": "^14.4.0",
     "next": "16.3.6",
     "react": "19.2.8",
     "react-dom": "19.2.8"

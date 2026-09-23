@@ -48,3 +48,8 @@ next-env.d.ts
 shot-*.png
 
 .vercel
+
+# firebase service account credentials — never commit
+firebase-service-account.json
+*service-account*.json
+serviceAccount*.json
