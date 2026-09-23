@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# keep the example env file tracked
+!.env.example
+
+# local test artifacts
+.playwright-mcp/
+shot-*.png
