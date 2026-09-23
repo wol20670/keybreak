@@ -29,9 +29,9 @@ const PODIUM: Record<
   },
   3: {
     label: "3RD",
-    rank: "text-primary",
+    rank: "text-muted",
     name: "text-bone",
-    row: "bg-primary/5",
+    row: "bg-surface-2/40",
     dpm: "text-sm text-accent",
   },
 };
@@ -116,13 +116,17 @@ export default function RankingPanel({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-deep/85 p-4 backdrop-blur-sm">
       <div className="kb-panel flex max-h-[85vh] w-full max-w-xl flex-col rounded-lg bg-surface">
-        <div className="flex items-center justify-between border-b-2 border-surface-2 px-5 py-4">
-          <h2 className="font-pixel text-base text-accent sm:text-lg">RANKING</h2>
+        <div className="flex items-center justify-between border-b border-surface-2 px-5 py-4">
+          <h2 className="kb-display font-pixel text-base text-primary sm:text-lg">
+            TOP DEBUGGERS
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            className="font-pixel text-[10px] text-muted transition-colors hover:text-bone"
+            className="font-pixel text-[10px] tracking-widest text-muted transition-colors hover:text-bone"
           >
+            {/* The hint only appears where an Escape key exists. */}
+            <span className="hidden sm:inline">[ESC] </span>
             CLOSE
           </button>
         </div>
@@ -136,11 +140,11 @@ export default function RankingPanel({
 
           {status === "error" && (
             <div className="flex flex-col items-center gap-4 py-12">
-              <p className="px-4 text-center text-sm text-primary">{message}</p>
+              <p className="px-4 text-center text-sm text-accent">{message}</p>
               <button
                 type="button"
                 onClick={retry}
-                className="kb-panel rounded-md bg-surface-2 px-4 py-2 font-pixel text-[10px] text-bone"
+                className="kb-panel rounded-md bg-surface-2 px-4 py-2 font-pixel text-[10px] tracking-widest text-bone"
               >
                 RETRY
               </button>
@@ -149,7 +153,7 @@ export default function RankingPanel({
 
           {status === "ok" && entries.length === 0 && (
             <p className="py-12 text-center text-sm text-muted">
-              아직 기록이 없습니다. 첫 번째 파괴왕이 되어보세요.
+              아직 기록이 없습니다. 첫 번째 디버거가 되어보세요.
             </p>
           )}
 

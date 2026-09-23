@@ -70,24 +70,33 @@ export default function GameScreen({ snapshot }: GameScreenProps) {
         >
           {banner.kind === "phase" ? (
             <span
-              className="font-pixel whitespace-nowrap text-3xl text-accent sm:text-6xl"
-              style={{ textShadow: "0 5px 0 #26101a, 0 0 34px rgba(244,185,66,0.95)" }}
+              className="kb-display font-pixel whitespace-nowrap text-3xl text-accent sm:text-6xl"
+              style={{
+                textShadow:
+                  "0 0 4px var(--color-shadow-hard), 0 0 14px var(--color-shadow-hard), 0 4px 0 var(--color-shadow-hard), 0 0 34px rgb(var(--rgb-accent) / 0.9)",
+              }}
             >
               {PHASE_LABELS[banner.stage]}
             </span>
           ) : banner.kind === "rush" ? (
             <span
-              className="font-pixel whitespace-nowrap text-3xl text-primary sm:text-6xl"
-              style={{ textShadow: "0 5px 0 #26101a, 0 0 30px rgba(232,79,95,0.9)" }}
+              className="kb-display font-pixel whitespace-nowrap text-3xl text-accent sm:text-6xl"
+              style={{
+                textShadow:
+                  "0 0 4px var(--color-shadow-hard), 0 0 14px var(--color-shadow-hard), 0 4px 0 var(--color-shadow-hard), 0 0 30px rgb(var(--rgb-accent) / 0.9)",
+              }}
             >
-              FINAL RUSH
+              FORCE TERMINATE
             </span>
           ) : (
             <span
-              className={`font-pixel whitespace-nowrap ${BANNER_SIZE[banner.tier]} ${
-                BANNER_TONE[banner.tier]
-              }`}
-              style={{ textShadow: "0 5px 0 #26101a, 0 0 26px rgba(244,185,66,0.7)" }}
+              className={`kb-display font-pixel whitespace-nowrap ${
+                BANNER_SIZE[banner.tier]
+              } ${BANNER_TONE[banner.tier]}`}
+              style={{
+                textShadow:
+                  "0 0 4px var(--color-shadow-hard), 0 0 14px var(--color-shadow-hard), 0 4px 0 var(--color-shadow-hard), 0 0 26px rgb(var(--rgb-primary) / 0.7)",
+              }}
             >
               {TIER_LABELS[banner.tier]}
             </span>
@@ -109,12 +118,12 @@ export default function GameScreen({ snapshot }: GameScreenProps) {
               </span>
               <span className="shrink-0 font-pixel text-[7px] tabular-nums text-muted sm:text-[10px]">
                 <span className="hidden sm:inline">
-                  BOSS {snapshot.bossesDefeated + 1} ·{" "}
+                  PROCESS {snapshot.bossesDefeated + 1} · STABILITY{" "}
                 </span>
                 {Math.max(0, Math.ceil(snapshot.bossHp))}/{snapshot.bossMaxHp}
               </span>
             </div>
-            <div className="h-5 w-full overflow-hidden rounded-sm border-2 border-surface-2 bg-ink-deep">
+            <div className="h-4 w-full overflow-hidden rounded-sm border border-surface-2 bg-ink-deep">
               <div
                 className="h-full bg-gradient-to-r from-primary-dim via-primary to-accent"
                 style={{ width: `${hpPercent}%` }}
@@ -127,8 +136,8 @@ export default function GameScreen({ snapshot }: GameScreenProps) {
               TIME
             </div>
             <div
-              className={`font-pixel tabular-nums text-3xl sm:text-5xl ${
-                urgent ? "text-primary kb-blink" : "text-bone"
+              className={`kb-display font-pixel tabular-nums text-3xl sm:text-5xl ${
+                urgent ? "text-accent kb-blink" : "text-bone"
               }`}
             >
               {seconds.toFixed(1)}
@@ -157,7 +166,7 @@ export default function GameScreen({ snapshot }: GameScreenProps) {
               style={{
                 left: `calc(50% + ${d.x}px)`,
                 top: `calc(50% + ${d.y}px)`,
-                textShadow: "0 2px 0 #26101a",
+                textShadow: "0 2px 0 var(--color-shadow-hard)",
               }}
             >
               {d.value}
@@ -168,8 +177,11 @@ export default function GameScreen({ snapshot }: GameScreenProps) {
         {snapshot.combo >= 30 && (
           <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2">
             <span
-              className={`font-pixel whitespace-nowrap text-xl sm:text-3xl tabular-nums ${COMBO_TONE[tier]}`}
-              style={{ textShadow: "0 3px 0 #26101a" }}
+              className={`kb-display font-pixel whitespace-nowrap text-xl tabular-nums sm:text-3xl ${COMBO_TONE[tier]}`}
+              style={{
+                textShadow:
+                  "0 3px 0 var(--color-shadow-hard), 0 0 20px rgb(var(--rgb-primary) / 0.45)",
+              }}
             >
               {snapshot.combo} COMBO
             </span>
@@ -180,6 +192,7 @@ export default function GameScreen({ snapshot }: GameScreenProps) {
       {/* Stats + key visualiser */}
       <div className="flex w-full max-w-3xl flex-col items-center gap-4">
         <div className="kb-panel flex w-full items-center justify-around rounded-md bg-surface/80 py-3">
+          {/* Readouts, in the order a debugger would scan them. */}
           <HudStat label="DPM" value={snapshot.dpm} tone="accent" size="lg" />
           <HudStat label="HITS" value={snapshot.totalHits} />
           <HudStat label="COMBO" value={snapshot.combo} tone="primary" />

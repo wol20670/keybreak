@@ -19,38 +19,38 @@ const STAGE_SPRITES = [
 /**
  * Per-stage scale, so each form reads as bigger than the last.
  *
- * The source PNGs are all 1254x1254 but their subjects fill very different
- * amounts of that canvas — measured content boxes are 1138x766, 1142x1147,
- * 1243x1249 and 1199x1248. Taking sqrt(w*h) as apparent size, they already
- * render at roughly 75% / 92% / 100% / 98% of one another inside an
- * object-contain box, so these factors are the correction that lands them on
- * the intended 72% / 86% / 100% / 108% progression rather than raw scales.
+ * Subjects fill very different amounts of their canvas — measured content
+ * boxes are 1188x949, 1188x1143, 1221x1230 and 1245x1237, on canvases of
+ * 1254x1254 except stage 02, which ships 1312x1199. Inside an object-contain
+ * box the apparent size is sqrt(w*h) / max(canvas), giving 0.85 / 0.89 / 0.98 /
+ * 0.99 — nearly flat. These factors are the correction that lands them on the
+ * intended 72% / 86% / 100% / 108% progression rather than raw scales.
  */
-const STAGE_SCALE = [0.96, 0.94, 1.0, 1.1] as const;
+const STAGE_SCALE = [0.84, 0.97, 1.02, 1.08] as const;
 
-/** 16x14 pixel-art demon, used only when a sprite cannot load. */
+/** 16x14 pixel-art error block, used only when a sprite cannot load. */
 const BOSS_PIXELS = [
-  "..K..........K..",
-  ".KHK........KHK.",
-  ".KHK........KHK.",
+  "................",
   "..KKKKKKKKKKKK..",
   ".KHHHHHHHHHHHHK.",
-  "KHHHHHHHHHHHHHHK",
-  "KHHEEHHHHHHEEHHK",
-  "KHHEEHHHHHHEEHHK",
-  "KHHHHHHHHHHHHHHK",
-  "KHHHHHHHHHHHHHHK",
-  ".KHHTTTTTTTTHHK.",
-  ".KHHTKTKTKTKHHK.",
-  "..KHHHHHHHHHHK..",
-  "...KKKKKKKKKK...",
+  ".KHHHHHHHHHHHHK.",
+  ".KHEEHHHHHHEEHK.",
+  ".KHEEHHHHHHEEHK.",
+  ".KHHHHHHHHHHHHK.",
+  ".KHHHHHTTHHHHHK.",
+  ".KHHHHTTTTHHHHK.",
+  ".KHHHTTKKTTHHHK.",
+  ".KHHHHHHHHHHHHK.",
+  ".KHHHHHHHHHHHHK.",
+  "..KKKKKKKKKKKK..",
+  "................",
 ];
 
 const PIXEL_COLORS: Record<string, string> = {
-  K: "#26101a",
-  H: "#7a2130",
-  E: "#f4b942",
-  T: "#f5f1e8",
+  K: "#04080f",
+  H: "#16404f",
+  E: "#38d9f0",
+  T: "#ffb64a",
 };
 
 const SPRITE_BOX = "w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80";
@@ -61,10 +61,10 @@ const SPRITE_BOX = "w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80";
  * would otherwise overwrite each other.
  */
 const GLOW_FILTER = [
-  "drop-shadow(0 0 28px rgba(232, 79, 95, 0.5))",
-  "drop-shadow(0 0 42px rgba(232, 79, 95, 0.7))",
-  "drop-shadow(0 0 58px rgba(232, 79, 95, 0.9))",
-  "drop-shadow(0 0 74px rgba(244, 185, 66, 0.95))",
+  "drop-shadow(0 0 26px rgba(56, 217, 240, 0.4))",
+  "drop-shadow(0 0 38px rgba(56, 217, 240, 0.55))",
+  "drop-shadow(0 0 52px rgba(56, 217, 240, 0.75))",
+  "drop-shadow(0 0 30px rgba(56, 217, 240, 0.9)) drop-shadow(0 0 70px rgba(56, 217, 240, 0.7))",
 ] as const;
 
 const STATE_CLASS: Record<BossState, string> = {

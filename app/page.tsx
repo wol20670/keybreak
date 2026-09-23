@@ -49,7 +49,7 @@ export default function Home() {
         <button
           type="button"
           onClick={backToStart}
-          className="absolute left-4 top-4 font-pixel text-[10px] text-muted transition-colors hover:text-bone"
+          className="absolute left-4 top-4 font-pixel text-[10px] tracking-widest text-muted transition-colors hover:text-primary"
         >
           ← HOME
         </button>

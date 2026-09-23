@@ -22,6 +22,14 @@ export const MAX_DAMAGE_NUMBERS = 24;
 export const COUNTDOWN_STEPS = ["3", "2", "1", "BREAK!"] as const;
 export const COUNTDOWN_STEP_MS = [800, 800, 800, 400] as const;
 
+/** Display-only caption under each countdown step. Parallel to the steps. */
+export const COUNTDOWN_NOTES = [
+  "DEBUGGER ATTACHED",
+  "LOADING SYMBOLS",
+  "SYSTEM READY",
+  "",
+] as const;
+
 export const ATTACK_KEYS = ["a", "s", "d", "f"] as const;
 export type AttackKey = (typeof ATTACK_KEYS)[number];
 
@@ -92,29 +100,41 @@ export type BossStage = 0 | 1 | 2 | 3;
 
 export const KILLS_PER_STAGE = 3;
 
-/** 0-2 kills → I, 3-5 → II, 6-8 → III, 9+ → FINAL. */
+/** 0-2 kills → 01, 3-5 → 02, 6-8 → 03, 9+ → FINAL. */
 export function bossVisualStage(bossesDefeated: number): BossStage {
   return Math.min(3, Math.floor(bossesDefeated / KILLS_PER_STAGE)) as BossStage;
 }
 
-export const STAGE_LABELS = ["STAGE I", "STAGE II", "STAGE III", "FINAL"] as const;
-
-/** Display-only names. Never stored, never sent to the API. */
-export const STAGE_NAMES = [
-  "CRIMSON SLIME",
-  "INFERNAL GUARD",
-  "ABYSS KNIGHT",
-  "KEYBREAKER LORD",
+export const STAGE_LABELS = [
+  "STAGE 01",
+  "STAGE 02",
+  "STAGE 03",
+  "FINAL",
 ] as const;
 
-/** Shout on entering each stage. Index 0 is unused — stage I is the start. */
-export const PHASE_LABELS = ["", "PHASE II", "PHASE III", "FINAL FORM"] as const;
+/**
+ * Display-only names. Never stored, never sent to the API.
+ * A stray error grows into a node, then into the thing running the system.
+ */
+export const STAGE_NAMES = [
+  "GLITCH SEED",
+  "FAULT NODE",
+  "PROCESS KEEPER",
+  "SYSTEM OVERLORD",
+] as const;
+
+/** Shout on entering each stage. Index 0 is unused — stage 01 is the start. */
+export const PHASE_LABELS = ["", "PHASE 02", "PHASE 03", "KERNEL PANIC"] as const;
 
 /** How long the evolution flash runs once the new sprite appears. */
 export const PHASE_TRANSITION_MS = 700;
 
-/** Shout shown the first time a streak reaches each tier. Index 0 is unused. */
-export const TIER_LABELS = ["", "RAMPAGE!", "FRENZY!", "KEYBREAKER!!"] as const;
+/**
+ * Shout shown the first time a streak reaches each tier. Index 0 is unused.
+ * These praise the player, so they read as the debugger closing in — never as
+ * the crash language reserved for the boss falling apart.
+ */
+export const TIER_LABELS = ["", "TRACE LOCK!", "HOT PATH!", "OVERCLOCK!!"] as const;
 
 /** How long a tier / final-rush banner stays on screen. */
 export const BANNER_MS = 750;

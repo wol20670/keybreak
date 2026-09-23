@@ -22,10 +22,10 @@ const GRADE_TONE: Record<ReturnType<typeof scoreGrade>, string> = {
 
 /** Tone for the balance percentage, from very even down to very lopsided. */
 function balanceTone(balance: number): string {
-  if (balance >= 90) return "text-accent";
+  if (balance >= 90) return "text-primary";
   if (balance >= 70) return "text-bone";
   if (balance >= 50) return "text-muted";
-  return "text-primary";
+  return "text-accent";
 }
 
 interface ResultScreenProps {
@@ -100,21 +100,31 @@ export default function ResultScreen({
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center gap-4 overflow-y-auto px-4 py-5">
       <h2
-        className="mt-auto font-pixel text-2xl text-accent sm:text-4xl"
-        style={{ textShadow: "0 4px 0 #26101a" }}
+        className="kb-display mt-auto font-pixel text-2xl text-primary sm:text-4xl"
+        style={{
+          textShadow:
+            "0 3px 0 var(--color-shadow-hard), 0 0 30px rgb(var(--rgb-primary) / 0.55)",
+        }}
       >
-        TIME UP
+        SESSION COMPLETE
       </h2>
 
       <div className="kb-panel flex w-full max-w-lg flex-col items-center gap-4 rounded-lg bg-surface/80 px-5 py-6">
+        <p className="w-full border-b border-surface-2 pb-3 font-pixel text-[10px] tracking-widest text-muted">
+          <span className="text-primary/60">&gt;</span> debug-session.log
+        </p>
+
         <div className="flex items-center justify-center gap-6 sm:gap-10">
           <div className="flex flex-col items-center">
             <span className="font-pixel text-[10px] tracking-widest text-muted">
               FINAL DPM
             </span>
             <span
-              className="font-pixel text-5xl tabular-nums text-primary sm:text-7xl"
-              style={{ textShadow: "0 5px 0 #26101a" }}
+              className="kb-display font-pixel text-5xl tabular-nums text-primary sm:text-7xl"
+              style={{
+                textShadow:
+                  "0 4px 0 var(--color-shadow-hard), 0 0 28px rgb(var(--rgb-primary) / 0.5)",
+              }}
             >
               {result.dpm}
             </span>
@@ -125,12 +135,12 @@ export default function ResultScreen({
               GRADE
             </span>
             <span
-              className={`font-pixel text-5xl sm:text-7xl ${GRADE_TONE[grade]}`}
+              className={`kb-display font-pixel text-5xl sm:text-7xl ${GRADE_TONE[grade]}`}
               style={{
                 textShadow:
                   grade === "S"
-                    ? "0 5px 0 #26101a, 0 0 28px rgba(244,185,66,0.85)"
-                    : "0 5px 0 #26101a",
+                    ? "0 4px 0 var(--color-shadow-hard), 0 0 28px rgb(var(--rgb-accent) / 0.8)"
+                    : "0 4px 0 var(--color-shadow-hard)",
               }}
             >
               {grade}
@@ -153,7 +163,7 @@ export default function ResultScreen({
           )}
         </div>
 
-        <div className="flex w-full items-start justify-around border-t-2 border-surface-2 pt-5">
+        <div className="flex w-full items-start justify-around border-t border-surface-2 pt-5">
           <HudStat label="HITS" value={result.totalHits} size="sm" />
           <HudStat
             label="MAX COMBO"
@@ -162,7 +172,7 @@ export default function ResultScreen({
             size="sm"
           />
           <HudStat
-            label="BOSS KILL"
+            label="PROCESSES TERMINATED"
             value={result.bossesDefeated}
             tone="primary"
             size="sm"
@@ -170,10 +180,10 @@ export default function ResultScreen({
         </div>
 
         {/* Per-key breakdown. Display only — nothing here is saved. */}
-        <div className="w-full border-t-2 border-surface-2 pt-4">
+        <div className="w-full border-t border-surface-2 pt-4">
           <div className="mb-2 flex items-baseline justify-between">
             <span className="font-pixel text-[9px] tracking-widest text-muted">
-              KEY ANALYSIS
+              <span className="text-primary/60">{"//"}</span> INPUT ANALYSIS
             </span>
             <span className="font-pixel text-[9px] tracking-widest text-muted">
               BALANCE{" "}
@@ -229,7 +239,7 @@ export default function ResultScreen({
             type="button"
             onClick={() => void save()}
             disabled={!canSave}
-            className="kb-panel shrink-0 rounded-md bg-accent px-5 py-3 font-pixel text-xs text-ink transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+            className="kb-panel kb-display shrink-0 rounded-md bg-primary px-5 py-3 font-pixel text-xs text-ink transition-transform hover:-translate-y-0.5 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {status === "saving" ? "..." : "SAVE"}
           </button>
@@ -239,7 +249,7 @@ export default function ResultScreen({
           <p
             role="status"
             className={`text-center text-xs ${
-              status === "saved" ? "text-accent" : "text-primary"
+              status === "saved" ? "text-primary" : "text-accent"
             }`}
           >
             {message}
@@ -251,14 +261,14 @@ export default function ResultScreen({
           <button
             type="button"
             onClick={() => onOpenRanking(savedId)}
-            className="kb-panel flex-1 rounded-md bg-surface-2 px-4 py-3 font-pixel text-[11px] text-bone transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
+            className="kb-panel flex-1 rounded-md bg-surface-2 px-4 py-3 font-pixel text-[11px] tracking-widest text-bone transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
           >
             RANKING
           </button>
           <button
             type="button"
             onClick={onRetry}
-            className="kb-panel flex-1 rounded-md bg-primary px-4 py-3 font-pixel text-[11px] text-bone transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
+            className="kb-panel kb-display flex-1 rounded-md bg-primary/15 px-4 py-3 font-pixel text-[11px] tracking-widest text-primary transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
           >
             RETRY
           </button>

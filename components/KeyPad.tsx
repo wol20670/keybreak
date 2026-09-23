@@ -25,10 +25,10 @@ function KeyPad({ activeKeys, size = "lg" }: KeyPadProps) {
             aria-hidden
             className={[
               box,
-              "font-pixel grid place-items-center rounded-md border-2 transition-none select-none",
+              "font-pixel kb-display grid place-items-center rounded-md border transition-none select-none",
               active
-                ? "bg-primary text-ink border-bone translate-y-[3px] shadow-[0_0_24px_6px_rgba(232,79,95,0.65)]"
-                : "bg-surface text-muted border-surface-2 shadow-[0_4px_0_0_rgba(0,0,0,0.5)]",
+                ? "bg-primary text-ink border-primary translate-y-[3px] shadow-[0_0_22px_5px_rgba(56,217,240,0.6)]"
+                : "bg-surface text-muted border-surface-2 shadow-[0_4px_0_0_rgba(0,0,0,0.55)]",
             ].join(" ")}
           >
             {key.toUpperCase()}

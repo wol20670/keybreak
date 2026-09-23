@@ -22,11 +22,11 @@ const SIZE: Record<NonNullable<HudStatProps["size"]>, string> = {
 function HudStat({ label, value, tone = "default", size = "md" }: HudStatProps) {
   return (
     <div className="flex flex-col items-center gap-1 px-2">
-      <span className="font-pixel text-[9px] sm:text-[10px] tracking-widest text-muted">
+      <span className="text-center font-pixel text-[9px] leading-tight tracking-widest text-muted sm:text-[10px]">
         {label}
       </span>
       <span
-        className={`font-pixel tabular-nums ${SIZE[size]} ${TONE[tone]}`}
+        className={`kb-display font-pixel tabular-nums ${SIZE[size]} ${TONE[tone]}`}
       >
         {value}
       </span>

@@ -1,17 +1,35 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #11131c;
-  --color-ink-deep: #090a11;
-  --color-surface: #1b2030;
-  --color-surface-2: #252c42;
-  --color-primary: #e84f5f;
-  --color-primary-dim: #8f2c38;
-  --color-accent: #f4b942;
-  --color-bone: #f5f1e8;
-  --color-muted: #8b91a8;
+  --color-ink: #0e1420;
+  --color-ink-deep: #060910;
+  --color-ink-mid: #121a28;
+  --color-surface: #141c2b;
+  --color-surface-2: #223047;
+  --color-primary: #38d9f0;
+  --color-primary-dim: #1b6b85;
+  --color-accent: #ffb64a;
+  --color-bone: #e8eef7;
+  --color-muted: #7d8aa3;
 
-  --font-pixel: var(--font-pixel), "Courier New", monospace;
+  /* Hard drop shadow under display type. Keeps headings legible on glow. */
+  --color-shadow-hard: #04080f;
+
+  /*
+   * One terminal face for the whole site. Korean has no glyphs in JetBrains
+   * Mono, so the body face sits next in the chain and picks it up
+   * transparently.
+   */
+  --font-pixel: var(--font-mono-src), var(--font-body), ui-monospace, monospace;
+}
+
+/*
+ * Channel-only copies of the two signal colours. Glows and inset rings need
+ * `rgb(... / alpha)`, which a hex token cannot provide.
+ */
+:root {
+  --rgb-primary: 56 217 240;
+  --rgb-accent: 255 182 74;
 }
 
 html,
@@ -25,23 +43,52 @@ body {
   overflow-x: hidden;
 }
 
-/* Dungeon backdrop: layered glows + floor haze, no image assets required. */
+/*
+ * Server-room backdrop: blueprint grid, a cyan console glow where the boss
+ * stands, and a warm warning wash along the floor. No image assets required.
+ * Every layer is kept far below HUD contrast so the readouts stay first.
+ */
 .kb-dungeon {
-  background:
-    radial-gradient(
-      ellipse 60% 45% at 50% 18%,
-      rgba(232, 79, 95, 0.16),
-      transparent 70%
+  background-color: var(--color-ink-deep);
+  background-image:
+    linear-gradient(
+      to right,
+      rgb(var(--rgb-primary) / 0.05) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      rgb(var(--rgb-primary) / 0.05) 1px,
+      transparent 1px
     ),
     radial-gradient(
-      ellipse 90% 60% at 50% 105%,
-      rgba(244, 185, 66, 0.1),
+      ellipse 62% 46% at 50% 26%,
+      rgb(var(--rgb-primary) / 0.13),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 95% 55% at 50% 108%,
+      rgb(var(--rgb-accent) / 0.07),
       transparent 70%
     ),
-    linear-gradient(180deg, #090a11 0%, #11131c 45%, #171b28 100%);
+    linear-gradient(
+      180deg,
+      var(--color-ink-deep) 0%,
+      var(--color-ink) 48%,
+      var(--color-ink-mid) 100%
+    );
+  background-size:
+    64px 64px,
+    64px 64px,
+    auto,
+    auto,
+    auto;
 }
 
-/* CRT scanlines + vignette, purely decorative. */
+/*
+ * A monitor, not a CRT. Deliberately near the threshold of perception — this
+ * should read as a panel refresh, never as a retro arcade cabinet.
+ */
 .kb-scanlines::after {
   content: "";
   position: absolute;
@@ -51,11 +98,11 @@ body {
     180deg,
     rgba(0, 0, 0, 0) 0px,
     rgba(0, 0, 0, 0) 2px,
-    rgba(0, 0, 0, 0.22) 3px,
-    rgba(0, 0, 0, 0.22) 4px
+    rgba(0, 0, 0, 0.3) 3px,
+    rgba(0, 0, 0, 0.3) 4px
   );
   mix-blend-mode: multiply;
-  opacity: 0.55;
+  opacity: 0.15;
 }
 
 .kb-vignette::before {
@@ -63,15 +110,34 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  box-shadow: inset 0 0 180px 60px rgba(0, 0, 0, 0.85);
+  box-shadow: inset 0 0 200px 40px rgba(0, 0, 0, 0.72);
 }
 
-/* Chunky arcade panel edge. */
+/* Debugger panel edge: one hairline, one lit top edge, one soft drop. */
 .kb-panel {
-  border: 2px solid var(--color-surface-2);
+  border: 1px solid var(--color-surface-2);
   box-shadow:
-    0 0 0 2px var(--color-ink-deep),
-    0 8px 0 0 rgba(0, 0, 0, 0.45);
+    inset 0 1px 0 0 rgb(var(--rgb-primary) / 0.1),
+    0 2px 16px 0 rgba(0, 0, 0, 0.5);
+}
+
+/*
+ * The wordmark. JetBrains Mono at 800 with wide tracking and a layered cyan
+ * bloom — the one place the site is allowed to shout.
+ */
+.kb-logo {
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-shadow:
+    0 2px 0 var(--color-shadow-hard),
+    0 0 14px rgb(var(--rgb-primary) / 0.7),
+    0 0 48px rgb(var(--rgb-primary) / 0.4);
+}
+
+/* Display type that still needs weight and punch, minus the wordmark bloom. */
+.kb-display {
+  font-weight: 800;
+  letter-spacing: 0.08em;
 }
 
 @keyframes kb-float {
@@ -149,10 +215,10 @@ body {
 @keyframes kb-pulse-glow {
   0%,
   100% {
-    box-shadow: 0 0 18px 0 rgba(232, 79, 95, 0.35);
+    box-shadow: 0 0 18px 0 rgb(var(--rgb-primary) / 0.3);
   }
   50% {
-    box-shadow: 0 0 34px 6px rgba(232, 79, 95, 0.6);
+    box-shadow: 0 0 34px 6px rgb(var(--rgb-primary) / 0.55);
   }
 }
 
@@ -179,7 +245,7 @@ body {
   }
 }
 
-/* Screen-edge crimson breathing during the final five seconds. */
+/* Screen-edge amber breathing during the final five seconds. */
 @keyframes kb-edge-pulse {
   0%,
   100% {
@@ -210,7 +276,7 @@ body {
   }
 }
 
-/* Screen-wide crimson flare at the moment of evolution. */
+/* Screen-wide flare at the moment of evolution. */
 @keyframes kb-phase-edge {
   0% {
     opacity: 0;
@@ -281,13 +347,13 @@ body {
   transition: box-shadow 220ms ease-out;
 }
 .kb-edge-1 {
-  box-shadow: inset 0 0 90px 10px rgba(232, 79, 95, 0.22);
+  box-shadow: inset 0 0 90px 10px rgb(var(--rgb-primary) / 0.18);
 }
 .kb-edge-2 {
-  box-shadow: inset 0 0 130px 20px rgba(232, 79, 95, 0.36);
+  box-shadow: inset 0 0 130px 20px rgb(var(--rgb-primary) / 0.3);
 }
 .kb-edge-3 {
-  box-shadow: inset 0 0 170px 30px rgba(232, 79, 95, 0.52);
+  box-shadow: inset 0 0 170px 30px rgb(var(--rgb-primary) / 0.44);
 }
 
 .kb-phase-flash {
@@ -297,16 +363,19 @@ body {
 /* Screen flare at the moment a new form appears. */
 .kb-edge-phase {
   box-shadow:
-    inset 0 0 200px 60px rgba(232, 79, 95, 0.55),
-    inset 0 0 0 6px rgba(244, 185, 66, 0.5);
+    inset 0 0 200px 60px rgb(var(--rgb-primary) / 0.5),
+    inset 0 0 0 4px rgb(var(--rgb-accent) / 0.45);
   animation: kb-phase-edge 700ms ease-out forwards;
 }
 
-/* Final rush sits on its own layer so it stacks with the combo glow. */
+/*
+ * Final rush sits on its own layer so it stacks with the combo glow. Amber,
+ * not cyan: this is the clock running out, not the player doing well.
+ */
 .kb-edge-rush {
   box-shadow:
-    inset 0 0 120px 24px rgba(232, 79, 95, 0.45),
-    inset 0 0 0 4px rgba(232, 79, 95, 0.55);
+    inset 0 0 120px 24px rgb(var(--rgb-accent) / 0.34),
+    inset 0 0 0 2px rgb(var(--rgb-accent) / 0.5);
   animation: kb-edge-pulse 620ms ease-in-out infinite;
 }
 
@@ -314,7 +383,7 @@ body {
   background-image: linear-gradient(
     100deg,
     transparent 30%,
-    rgba(244, 185, 66, 0.16) 48%,
+    rgb(var(--rgb-accent) / 0.16) 48%,
     transparent 66%
   );
   background-size: 220% 100%;
