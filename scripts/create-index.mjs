@@ -135,6 +135,22 @@ if (listed.ok) {
   console.log(`\nIndex readiness (probed by query): ${ready ? "READY" : "not ready"}`);
 }
 
+// `--wait` polls until the index actually serves the query. Useful when the
+// index was created from the console link and we need to know when it is live.
+if (!ready && process.argv.includes("--wait")) {
+  const deadline = Date.now() + 10 * 60 * 1000;
+  process.stdout.write("\nWaiting for the index to become READY");
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 10_000));
+    process.stdout.write(".");
+    if ((await probeIndexUrl()) === null) {
+      ready = true;
+      break;
+    }
+  }
+  console.log("");
+}
+
 if (ready) {
   console.log("\nIndex is READY — the ranking uses the exact ordered query.");
 } else {
