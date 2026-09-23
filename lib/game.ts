@@ -42,11 +42,16 @@ export const BOSS_HP_GROWTH = 1.2;
 export const MAX_NICKNAME_LENGTH = 20;
 
 /**
- * Upper bound for a believable run: 30 taps/second for 30s. Anything above
+ * Upper bound for a believable run: 60 taps/second for 30s. Anything above
  * this is rejected by the API. This is a sanity check, not anti-cheat —
- * client-authoritative scoring is out of scope for this MVP.
+ * client-authoritative scoring is out of scope for this MVP, so the bound
+ * earns nothing by sitting close to real play. It only has to reject garbage.
+ *
+ * It was 30/s, which real players cleared: a 1106-hit run (~37/s) was refused
+ * at save time, after the full 30 seconds had already been played. Losing a
+ * genuine personal best costs far more than admitting an inflated one.
  */
-export const MAX_TOTAL_HITS = 900;
+export const MAX_TOTAL_HITS = 1800;
 
 export function isAttackKey(key: string): key is AttackKey {
   return (ATTACK_KEYS as readonly string[]).includes(key);
