@@ -1,3 +1,5 @@
+import type { HitsByKey } from "./game";
+
 export type GamePhase = "START" | "COUNTDOWN" | "PLAYING" | "RESULT";
 
 export type BossState = "idle" | "hit" | "defeated";
@@ -8,6 +10,11 @@ export interface GameResult {
   maxCombo: number;
   dpm: number;
   bossesDefeated: number;
+  /**
+   * Per-key breakdown for the result screen. Display only: it is never stored
+   * and never part of the POST /api/scores payload.
+   */
+  hitsByKey: HitsByKey;
 }
 
 /** Body of POST /api/scores. */

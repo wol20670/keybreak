@@ -32,6 +32,7 @@ import {
   type AttackKey,
   type BossStage,
   type ComboTier,
+  type HitsByKey,
 } from "@/lib/game";
 import type { BossState, GamePhase, GameResult } from "@/lib/types";
 
@@ -135,6 +136,8 @@ export function useKeybreakGame() {
   const keyFlashRef = useRef<Map<AttackKey, number>>(new Map());
   const damageNumbersRef = useRef<DamageNumber[]>([]);
   const damageIdRef = useRef(0);
+  /** Per-key tally for the result screen. Written in the hot path, read once. */
+  const hitsByKeyRef = useRef<HitsByKey>({ a: 0, s: 0, d: 0, f: 0 });
 
   // --- Presentation state. Derived in the rAF loop, never in the key path. ---
   /** Highest tier the current combo streak has reached. */
@@ -181,6 +184,7 @@ export function useKeybreakGame() {
     heldKeysRef.current.clear();
     keyFlashRef.current.clear();
     damageNumbersRef.current = [];
+    hitsByKeyRef.current = { a: 0, s: 0, d: 0, f: 0 };
     streakTierRef.current = 0;
     bannerRef.current = null;
     bannerUntilRef.current = 0;
@@ -207,6 +211,8 @@ export function useKeybreakGame() {
       maxCombo: maxComboRef.current,
       dpm: finalDpm(totalHits),
       bossesDefeated: bossesDefeatedRef.current,
+      // Copy, so later runs cannot mutate a result already on screen.
+      hitsByKey: { ...hitsByKeyRef.current },
     });
     setSnapshot((prev) => ({
       ...prev,
@@ -233,6 +239,7 @@ export function useKeybreakGame() {
     const now = performance.now();
 
     hitsRef.current += 1;
+    hitsByKeyRef.current[key] += 1;
     comboRef.current += 1;
     if (comboRef.current > maxComboRef.current) {
       maxComboRef.current = comboRef.current;

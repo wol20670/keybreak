@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import HudStat from "./HudStat";
-import { MAX_NICKNAME_LENGTH, scoreGrade } from "@/lib/game";
+import {
+  ATTACK_KEYS,
+  MAX_NICKNAME_LENGTH,
+  keyBalanceScore,
+  scoreGrade,
+} from "@/lib/game";
 import { readBestDpm, writeBestDpm } from "@/lib/personalBest";
 import type { ApiError, GameResult, RankingEntry } from "@/lib/types";
 
@@ -14,6 +19,14 @@ const GRADE_TONE: Record<ReturnType<typeof scoreGrade>, string> = {
   B: "text-bone",
   C: "text-muted",
 };
+
+/** Tone for the balance percentage, from very even down to very lopsided. */
+function balanceTone(balance: number): string {
+  if (balance >= 90) return "text-accent";
+  if (balance >= 70) return "text-bone";
+  if (balance >= 50) return "text-muted";
+  return "text-primary";
+}
 
 interface ResultScreenProps {
   result: GameResult;
@@ -40,6 +53,11 @@ export default function ResultScreen({
   const isNewBest = result.dpm > previousBest;
   const bestDpm = Math.max(previousBest, result.dpm);
   const grade = scoreGrade(result.dpm);
+
+  const { hitsByKey } = result;
+  const balance = keyBalanceScore(hitsByKey);
+  // Bars are relative to the most-used key; guard the empty run.
+  const busiestKey = Math.max(...ATTACK_KEYS.map((key) => hitsByKey[key]));
 
   useEffect(() => {
     writeBestDpm(result.dpm);
@@ -80,15 +98,15 @@ export default function ResultScreen({
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-7 px-4 py-8">
+    <div className="flex min-h-0 flex-1 flex-col items-center gap-4 overflow-y-auto px-4 py-5">
       <h2
-        className="font-pixel text-2xl text-accent sm:text-4xl"
+        className="mt-auto font-pixel text-2xl text-accent sm:text-4xl"
         style={{ textShadow: "0 4px 0 #26101a" }}
       >
         TIME UP
       </h2>
 
-      <div className="kb-panel flex w-full max-w-lg flex-col items-center gap-5 rounded-lg bg-surface/80 px-5 py-7">
+      <div className="kb-panel flex w-full max-w-lg flex-col items-center gap-4 rounded-lg bg-surface/80 px-5 py-6">
         <div className="flex items-center justify-center gap-6 sm:gap-10">
           <div className="flex flex-col items-center">
             <span className="font-pixel text-[10px] tracking-widest text-muted">
@@ -150,10 +168,48 @@ export default function ResultScreen({
             size="sm"
           />
         </div>
+
+        {/* Per-key breakdown. Display only — nothing here is saved. */}
+        <div className="w-full border-t-2 border-surface-2 pt-4">
+          <div className="mb-2 flex items-baseline justify-between">
+            <span className="font-pixel text-[9px] tracking-widest text-muted">
+              KEY ANALYSIS
+            </span>
+            <span className="font-pixel text-[9px] tracking-widest text-muted">
+              BALANCE{" "}
+              <span className={`tabular-nums ${balanceTone(balance)}`}>
+                {balance}%
+              </span>
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            {ATTACK_KEYS.map((key) => (
+              <div key={key} className="flex items-center gap-2">
+                <span className="w-3 font-pixel text-[10px] text-bone">
+                  {key.toUpperCase()}
+                </span>
+                <span className="w-9 text-right font-pixel text-[10px] tabular-nums text-muted">
+                  {hitsByKey[key]}
+                </span>
+                <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-sm bg-ink-deep">
+                  <span
+                    className="block h-full bg-gradient-to-r from-primary-dim via-primary to-accent"
+                    style={{
+                      width: `${
+                        busiestKey > 0 ? (hitsByKey[key] / busiestKey) * 100 : 0
+                      }%`,
+                    }}
+                  />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Save */}
-      <div className="flex w-full max-w-lg flex-col gap-3">
+      <div className="mb-auto flex w-full max-w-lg flex-col gap-3">
         <div className="flex gap-2">
           <input
             type="text"

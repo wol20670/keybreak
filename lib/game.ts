@@ -25,6 +25,9 @@ export const COUNTDOWN_STEP_MS = [800, 800, 800, 400] as const;
 export const ATTACK_KEYS = ["a", "s", "d", "f"] as const;
 export type AttackKey = (typeof ATTACK_KEYS)[number];
 
+/** How many valid hits each attack key took. Display only. */
+export type HitsByKey = Record<AttackKey, number>;
+
 export const BOSS_BASE_HP = 100;
 export const BOSS_HP_GROWTH = 1.2;
 
@@ -118,6 +121,31 @@ export const BANNER_MS = 750;
 
 /** Last stretch of the run, used only for visuals — never for scoring. */
 export const FINAL_RUSH_MS = 5_000;
+
+/**
+ * How evenly the four keys were used, 0-100.
+ *
+ * Deliberately simple and predictable: take how far each key sits from the
+ * even share, and divide by how far it could possibly be. Every tap on a
+ * single key gives a spread of exactly 1.5 * total, which is the worst case,
+ * so that ratio maps perfectly even to 100 and fully lopsided to 0.
+ *
+ * 25/25/25/25 -> 100 · 10/20/30/40 -> 73 · 100/0/0/0 -> 0 · nothing -> 0
+ */
+export function keyBalanceScore(hits: HitsByKey): number {
+  const total = hits.a + hits.s + hits.d + hits.f;
+  if (total <= 0) return 0;
+
+  const even = total / 4;
+  const spread =
+    Math.abs(hits.a - even) +
+    Math.abs(hits.s - even) +
+    Math.abs(hits.d - even) +
+    Math.abs(hits.f - even);
+
+  const score = Math.round((1 - spread / (1.5 * total)) * 100);
+  return Math.max(0, Math.min(100, score));
+}
 
 /**
  * Display-only rank for the result screen. Never stored, never sent to the
