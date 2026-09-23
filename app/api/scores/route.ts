@@ -19,13 +19,16 @@ export const runtime = "nodejs";
 // next to it instead of the default us-east.
 export const preferredRegion = "icn1";
 
-const RANKING_LIMIT = 20;
+const RANKING_LIMIT = 100;
 
 /**
  * How many rows the fallback path pulls before sorting in memory. Only used
  * while the composite index is missing or still building.
+ *
+ * Must stay comfortably above RANKING_LIMIT: this path sorts and then slices,
+ * so anything it does not fetch is silently missing from the ranking.
  */
-const FALLBACK_FETCH = 100;
+const FALLBACK_FETCH = RANKING_LIMIT * 3;
 
 const DB_NOT_CONFIGURED = {
   error: "DB_NOT_CONFIGURED",

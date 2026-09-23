@@ -131,7 +131,7 @@ export default function RankingPanel({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3 sm:px-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 sm:px-4">
           {status === "loading" && (
             <p className="py-12 text-center text-sm text-muted">
               랭킹을 불러오는 중…
@@ -160,7 +160,9 @@ export default function RankingPanel({
           {status === "ok" && entries.length > 0 && (
             <table className="w-full border-collapse">
               <thead>
-                <tr className="font-pixel text-[9px] tracking-widest text-muted">
+                {/* Pinned: the list runs to 100 rows, so the column labels
+                    have to survive scrolling. */}
+                <tr className="font-pixel text-[9px] tracking-widest text-muted [&>th]:sticky [&>th]:top-0 [&>th]:z-10 [&>th]:border-b [&>th]:border-surface-2 [&>th]:bg-surface">
                   <th className="px-2 py-2 text-left">#</th>
                   <th className="px-2 py-2 text-left">NAME</th>
                   <th className="px-2 py-2 text-right">DPM</th>
